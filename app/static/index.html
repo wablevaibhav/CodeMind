@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodeMind</title>
+<style>
+  :root {
+    --bg: #ffffff; --side: #f7f7f8; --text: #1f2430; --muted: #6b7280; --border: #e5e7eb;
+    --user: #eef0f4; --accent: #2f54eb; --accent-text: #fff; --hover: #ececf1;
+    --code-bg: #0f1623; --code-head: #1b2434; --code-text: #e6edf7; --inline: #eef0f4;
+    --ok: #16803c; --warn: #b45309; --err: #b42318; --err-bg: #fdecea; --shadow: 0 2px 14px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #212327; --side: #181a1d; --text: #e8eaed; --muted: #9aa0a9; --border: #34373d;
+      --user: #2e3137; --accent: #7c93ff; --accent-text: #10131a; --hover: #2a2d33;
+      --code-bg: #0e1116; --code-head: #1a1f28; --code-text: #e6edf7; --inline: #30343b;
+      --ok: #4ade80; --warn: #fbbf24; --err: #f87171; --err-bg: #3a2326; --shadow: 0 2px 14px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--text);
+         font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .app { display: grid; grid-template-columns: 270px 1fr; height: 100vh; height: 100dvh; }
+
+  /* sidebar */
+  aside { background: var(--side); border-right: 1px solid var(--border); display: flex;
+          flex-direction: column; min-height: 0; }
+  .brand { padding: 16px 16px 8px; font-weight: 700; font-size: 17px; display: flex; gap: 8px; align-items: center; }
+  .logo { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: var(--accent-text);
+          display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+  .newchat { margin: 8px 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+             background: transparent; text-align: left; }
+  .newchat:hover { background: var(--hover); }
+  .chats { flex: 1; overflow-y: auto; padding: 4px 8px; }
+  .chat-item { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 8px;
+               cursor: pointer; font-size: 14px; }
+  .chat-item:hover, .chat-item.active { background: var(--hover); }
+  .chat-item span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-item button { border: 0; background: transparent; color: var(--muted); opacity: 0; padding: 0 4px; }
+  .chat-item:hover button { opacity: 1; }
+  .side-foot { border-top: 1px solid var(--border); padding: 12px 16px; font-size: 12.5px; color: var(--muted); }
+  .side-foot a { color: var(--muted); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--err); }
+
+  /* main */
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .burger { display: none; border: 0; background: transparent; font-size: 20px; }
+  .topbar select { border: 1px solid var(--border); background: var(--bg); color: var(--text);
+                   border-radius: 8px; padding: 6px 10px; font: inherit; max-width: 60vw; }
+  .topbar .title { flex: 1; color: var(--muted); font-size: 13.5px; overflow: hidden;
+                   text-overflow: ellipsis; white-space: nowrap; }
+  #scroll { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+  .thread { max-width: 780px; margin: 0 auto; padding: 24px 16px 32px; }
+
+  .empty { text-align: center; padding-top: 12vh; }
+  .empty h1 { font-size: 30px; margin: 0 0 6px; }
+  .empty p { color: var(--muted); margin: 0 0 28px; }
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; text-align: left; }
+  .card { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: transparent; text-align: left; }
+  .card:hover { background: var(--hover); }
+  .card b { display: block; font-size: 14px; } .card span { color: var(--muted); font-size: 13px; }
+
+  /* messages */
+  .msg { display: flex; gap: 12px; margin: 22px 0; }
+  .msg.user { justify-content: flex-end; }
+  .bubble { background: var(--user); padding: 10px 14px 2px; border-radius: 18px; max-width: 85%;
+            overflow-wrap: anywhere; min-width: 0; flex: 0 1 auto; }
+  .avatar { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--accent);
+            color: var(--accent-text); display: grid; place-items: center; font-weight: 800; font-size: 13px; margin-top: 2px; }
+  .body { flex: 1; min-width: 0; }
+  .body p { margin: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .body ul, .body ol { margin: 0 0 10px; padding-left: 24px; }
+  .body li { margin: 3px 0; }
+  .body h4 { margin: 14px 0 6px; font-size: 15px; }
+  .body code { background: var(--inline); padding: 1px 5px; border-radius: 5px;
+               font: 13px ui-monospace, "Cascadia Code", Consolas, monospace; }
+  .sec { margin-top: 14px; }
+  .sec > h5 { margin: 0 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .codecard { border-radius: 10px; overflow: hidden; margin: 10px 0; background: var(--code-bg); }
+  .codehead { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px;
+              background: var(--code-head); color: #aab4c5; font-size: 12px; }
+  .codehead button { border: 0; background: transparent; color: #aab4c5; font-size: 12px; }
+  .codehead button:hover { color: #fff; }
+  .codecard pre { margin: 0; padding: 12px 14px; overflow-x: auto; color: var(--code-text);
+                  font: 13px/1.55 ui-monospace, "Cascadia Code", Consolas, monospace; }
+  .codecard pre code { background: none; padding: 0; }
+  .note { color: var(--muted); font-size: 13px; margin: 4px 0 10px; }
+  .qa { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+  .qa summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { border: 1px solid var(--border); background: transparent; border-radius: 999px; padding: 6px 12px; font-size: 13.5px; }
+  .chip:hover { background: var(--hover); }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-top: 10px;
+          font-size: 12.5px; color: var(--muted); }
+  .meta button { border: 0; background: transparent; color: var(--muted); padding: 2px 4px; border-radius: 6px; }
+  .meta button:hover { background: var(--hover); color: var(--text); }
+  .meta .warn { color: var(--warn); }
+  .json { margin-top: 8px; }
+  .err { background: var(--err-bg); border: 1px solid var(--err); border-radius: 10px; padding: 10px 14px; }
+  .err b { color: var(--err); }
+
+  .typing { display: inline-flex; gap: 4px; align-items: center; color: var(--muted); font-size: 13.5px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: b 1.2s infinite ease-in-out; }
+  .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes b { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
+
+  /* composer */
+  .composer-wrap { padding: 0 16px 14px; }
+  .composer { max-width: 780px; margin: 0 auto; border: 1px solid var(--border); border-radius: 18px;
+              background: var(--bg); box-shadow: var(--shadow); padding: 10px 12px 8px; }
+  .composer:focus-within { border-color: var(--accent); }
+  .composer textarea { width: 100%; border: 0; outline: 0; resize: none; background: transparent; color: var(--text);
+                       font: inherit; max-height: 220px; min-height: 28px; padding: 4px 2px; }
+  .tools { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .tools select { border: 1px solid var(--border); background: transparent; color: var(--muted);
+                  border-radius: 999px; padding: 4px 10px; font-size: 13px; }
+  .tool-btn { border: 1px solid var(--border); background: transparent; color: var(--muted);
+              border-radius: 999px; padding: 4px 10px; font-size: 13px; }
+  .tool-btn:hover { background: var(--hover); }
+  .grow { flex: 1; }
+  .send { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-text);
+          font-size: 17px; display: grid; place-items: center; }
+  .send:disabled { opacity: .35; cursor: default; }
+  .hint { max-width: 780px; margin: 6px auto 0; text-align: center; color: var(--muted); font-size: 12px; }
+
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; }
+    aside { position: fixed; z-index: 10; inset: 0 auto 0 0; width: 280px; transform: translateX(-100%);
+            transition: transform .2s; box-shadow: var(--shadow); }
+    aside.open { transform: none; }
+    .burger { display: block; }
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside id="side">
+    <div class="brand"><span class="logo">C</span> CodeMind</div>
+    <button class="newchat" id="new">＋ New chat</button>
+    <div class="chats" id="chats"></div>
+    <div class="side-foot">
+      <div><span id="dot" class="dot"></span><span id="status">Checking Ollama…</span></div>
+      <div style="margin-top:4px">Runs locally · <a href="/docs">API docs</a></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <button class="burger" id="burger" aria-label="Menu">☰</button>
+      <select id="model" aria-label="Model"></select>
+      <span class="title" id="title"></span>
+    </div>
+    <div id="scroll"><div class="thread" id="thread"></div></div>
+    <div class="composer-wrap">
+      <form class="composer" id="form" autocomplete="off">
+        <textarea id="input" rows="1" placeholder="Message CodeMind…" aria-label="Message"></textarea>
+        <div class="tools">
+          <select id="mode" aria-label="Mode" title="Mode">
+            <option value="auto">Auto</option><option value="ask">Ask</option><option value="debug">Debug</option>
+            <option value="explain">Explain</option><option value="generate">Generate</option>
+            <option value="review">Review</option><option value="learn">Learn</option>
+          </select>
+          <button type="button" class="tool-btn" id="fence" title="Insert a code block">&lt;/&gt; Code</button>
+          <span class="grow"></span>
+          <button type="submit" class="send" id="send" aria-label="Send" disabled>↑</button>
+        </div>
+      </form>
+      <div class="hint">Enter to send · Shift+Enter for a new line · put code inside ``` fences · AI answers are unverified</div>
+    </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const STORE = "codemind.chats.v1";
+const SUGGESTIONS = [
+  ["Debug an error", "Paste a traceback and I'll find the root cause.", "Why do I get this error?\n```\nTraceback (most recent call last):\n  File \"app.py\", line 3, in <module>\n    print(data['name'])\nKeyError: 'name'\n```"],
+  ["Explain code", "Walk through what a snippet does.", "Explain this code:\n```python\ndef fib(n, memo={}):\n    if n < 2:\n        return n\n    memo[n] = memo.get(n) or fib(n - 1) + fib(n - 2)\n    return memo[n]\n```"],
+  ["Generate code", "Get a runnable example with tests.", "Write a Python function that validates an email address, with pytest tests."],
+  ["Learn something", "A structured lesson with a quiz.", "Teach me Docker basics"],
+];
+
+let state = { chats: [], activeId: null };
+let busy = false, controller = null, timer = null;
+
+// ---------- storage (best effort; the app works without it) ----------
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(STORE)); if (s && Array.isArray(s.chats)) state = s; } catch {}
+}
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {}
+}
+const active = () => state.chats.find((c) => c.id === state.activeId);
+
+// ---------- DOM helpers: text nodes only, so model output can never inject markup ----------
+function el(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const kid of kids.flat(Infinity)) if (kid != null && kid !== false) n.append(kid);
+  return n;
+}
+function inline(text) {
+  const out = []; const re = /(`[^`\n]+`|\*\*[^*\n]+\*\*)/g; let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const t = m[0];
+    out.push(t[0] === "`" ? el("code", { text: t.slice(1, -1) }) : el("strong", { text: t.slice(2, -2) }));
+    last = m.index + t.length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+function copyButton(getText, label = "Copy") {
+  const b = el("button", { type: "button", text: label });
+  b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(getText()); b.textContent = "Copied"; }
+    catch { b.textContent = "Copy failed"; }
+    setTimeout(() => (b.textContent = label), 1400);
+  });
+  return b;
+}
+function codeCard(lang, code) {
+  return el("div", { class: "codecard" },
+    el("div", { class: "codehead" }, el("span", { text: lang || "text" }), copyButton(() => code)),
+    el("pre", {}, el("code", { text: code })));
+}
+// Small markdown subset: paragraphs, lists, headings, fenced code, `inline`, **bold**.
+function richText(src) {
+  const nodes = [], lines = String(src).replace(/\r/g, "").split("\n"); let i = 0, para = [];
+  const flush = () => { if (para.length) { nodes.push(el("p", {}, inline(para.join("\n")))); para = []; } };
+  while (i < lines.length) {
+    const l = lines[i], fence = l.match(/^\s*```([\w+#.-]*)\s*$/);
+    if (fence) {
+      flush(); const buf = []; i++;
+      while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) buf.push(lines[i++]);
+      i++; nodes.push(codeCard(fence[1], buf.join("\n"))); continue;
+    }
+    const ul = /^\s*[-*]\s+(.*)/, ol = /^\s*\d+[.)]\s+(.*)/;
+    if (ul.test(l) || ol.test(l)) {
+      flush(); const re = ul.test(l) ? ul : ol, items = [];
+      while (i < lines.length && re.test(lines[i])) items.push(el("li", {}, inline(re.exec(lines[i++])[1])));
+      nodes.push(el(re === ul ? "ul" : "ol", {}, items)); continue;
+    }
+    const h = l.match(/^#{1,4}\s+(.*)/);
+    if (h) { flush(); nodes.push(el("h4", {}, inline(h[1]))); i++; continue; }
+    if (!l.trim()) { flush(); i++; continue; }
+    para.push(l); i++;
+  }
+  flush(); return nodes;
+}
+
+// ---------- rendering ----------
+function sec(title, ...kids) { return el("div", { class: "sec" }, el("h5", { text: title }), ...kids); }
+function bullets(items, ordered) { return el(ordered ? "ol" : "ul", {}, items.map((t) => el("li", {}, inline(t)))); }
+
+function assistantBody(d) {
+  const r = d.response, kids = [];
+  if (r.summary) kids.push(el("p", {}, el("strong", { text: r.summary })));
+  kids.push(...richText(r.answer));
+  r.code_blocks.forEach((cb) => {
+    kids.push(codeCard(cb.language, cb.code));
+    if (cb.explanation) kids.push(el("div", { class: "note" }, inline(cb.explanation)));
+  });
+  if (r.steps.length) kids.push(sec(d.mode === "review" ? "Findings" : "Steps", bullets(r.steps, true)));
+  if (r.concepts.length) kids.push(sec("Key concepts", bullets(r.concepts)));
+  if (r.assumptions.length) kids.push(sec("Assumptions", bullets(r.assumptions)));
+  if (r.common_mistakes && r.common_mistakes.length) kids.push(sec("Common mistakes", bullets(r.common_mistakes)));
+  if (r.exercises && r.exercises.length)
+    kids.push(sec("Exercises", r.exercises.map((x) => el("div", { class: "qa" }, el("div", {}, inline(x.prompt)),
+      x.hint && el("details", {}, el("summary", { text: "Hint" }), el("div", {}, inline(x.hint))),
+      x.solution && el("details", {}, el("summary", { text: "Solution" }), ...richText(x.solution))))));
+  if (r.quiz && r.quiz.length)
+    kids.push(sec("Quiz", r.quiz.map((q) => el("div", { class: "qa" }, el("div", {}, inline(q.question)),
+      q.options.length && bullets(q.options),
+      el("details", {}, el("summary", { text: "Show answer" }), el("div", {}, inline(q.answer)),
+        q.explanation && el("div", { class: "note" }, inline(q.explanation)))))));
+  if (r.project_ideas && r.project_ideas.length) kids.push(sec("Project ideas", bullets(r.project_ideas)));
+  if (r.learning_summary) kids.push(sec("Summary", el("div", {}, inline(r.learning_summary))));
+  if (r.sources.length) kids.push(sec("Sources you provided", bullets(r.sources.map((s) => s.title + (s.url ? " — " + s.url : "")))));
+  if (r.follow_up_questions.length)
+    kids.push(el("div", { class: "chips" }, r.follow_up_questions.map((q) =>
+      el("button", { class: "chip", type: "button", text: q, onclick: () => send(q) }))));
+
+  const json = el("pre", { class: "json hidden-json", text: JSON.stringify(d, null, 2) });
+  json.style.display = "none";
+  const toggle = el("button", { type: "button", text: "Details" });
+  toggle.addEventListener("click", () => { json.style.display = json.style.display === "none" ? "block" : "none"; });
+  const recovered = d.retry.outcome !== "success";
+  kids.push(el("div", { class: "meta" },
+    el("span", { text: `${d.model} · ${(d.elapsed_ms / 1000).toFixed(1)}s` }),
+    recovered && el("span", { class: "warn", text: `recovered after ${d.retry.attempts} attempts` }),
+    copyButton(() => r.answer + r.code_blocks.map((c) => "\n\n```" + c.language + "\n" + c.code + "\n```").join(""), "Copy"),
+    toggle,
+    el("span", { text: "AI-generated · unverified" })));
+  kids.push(json);
+  return kids;
+}
+
+function errorBody(e, retryText) {
+  const box = el("div", { class: "err" }, el("b", { text: e.code || "error" }), el("div", { text: e.message || "Request failed." }));
+  if (e.code === "model_not_found") box.append(el("div", { class: "note", text: "Install it with: ollama pull <model>" }));
+  if (e.code === "ollama_unavailable") box.append(el("div", { class: "note", text: "Start Ollama, then retry." }));
+  const kids = [box];
+  if (retryText) kids.push(el("div", { class: "meta" }, el("button", { type: "button", text: "↻ Try again", onclick: () => send(retryText, true) })));
+  return kids;
+}
+
+function render() {
+  const chat = active(), thread = $("thread");
+  $("title").textContent = chat ? chat.title : "";
+  renderSidebar();
+  thread.replaceChildren();
+  if (!chat || chat.messages.length === 0) {
+    thread.append(el("div", { class: "empty" },
+      el("h1", { text: "What are you working on?" }),
+      el("p", { text: "A local coding assistant. Your code never leaves this machine." }),
+      el("div", { class: "cards" }, SUGGESTIONS.map(([t, d, p]) =>
+        el("button", { class: "card", type: "button", onclick: () => send(p) }, el("b", { text: t }), el("span", { text: d }))))));
+    return;
+  }
+  chat.messages.forEach((m, idx) => {
+    if (m.role === "user") {
+      thread.append(el("div", { class: "msg user" }, el("div", { class: "bubble body" }, richText(m.text))));
+      return;
+    }
+    const body = el("div", { class: "body" });
+    if (m.pending) {
+      liveBody = body;
+      paintLive(m.partial || "");
+    } else if (m.error) {
+      const prev = chat.messages[idx - 1];
+      body.append(...errorBody(m.error, idx === chat.messages.length - 1 && prev ? prev.text : null));
+    } else if (m.data) {
+      body.append(...assistantBody(m.data));
+    }
+    thread.append(el("div", { class: "msg" }, el("div", { class: "avatar", text: "C" }), body));
+  });
+  $("scroll").scrollTop = $("scroll").scrollHeight;
+}
+
+// Live (streaming) bubble: text so far + a typing indicator. Replaced by the validated result.
+let liveBody = null, liveStart = 0;
+function paintLive(text) {
+  if (!liveBody) return;
+  const wait = el("span", { class: "typing" }, el("i"), el("i"), el("i"),
+    text ? null : el("span", { id: "elapsed", text: " Thinking locally…" }));
+  liveBody.replaceChildren(...(text ? richText(text) : []), wait);
+  const s = $("scroll");
+  if (s.scrollHeight - s.scrollTop - s.clientHeight < 140) s.scrollTop = s.scrollHeight;
+}
+
+// POST and read a server-sent-event stream: {type: delta|result|error}.
+async function streamRequest(path, body, signal, onDelta) {
+  const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal });
+  if (!res.ok || !res.body) {
+    let data = null; try { data = await res.json(); } catch {}
+    return { error: (data && data.error) || { code: "http_" + res.status, message: "Request failed." } };
+  }
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = "", result = null, error = null;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let cut;
+    while ((cut = buf.indexOf("\n\n")) >= 0) {
+      const line = buf.slice(0, cut).trim(); buf = buf.slice(cut + 2);
+      if (!line.startsWith("data:")) continue;
+      let ev; try { ev = JSON.parse(line.slice(5)); } catch { continue; }
+      if (ev.type === "delta") onDelta(ev.text);
+      else if (ev.type === "result") result = ev.data;
+      else if (ev.type === "error") error = (ev.data && ev.data.error) || { code: "error", message: "Request failed." };
+    }
+  }
+  return result ? { data: result } : { error: error || { code: "incomplete", message: "The response ended unexpectedly." } };
+}
+
+function renderSidebar() {
+  const box = $("chats"); box.replaceChildren();
+  [...state.chats].sort((a, b) => b.updated - a.updated).forEach((c) => {
+    const del = el("button", { type: "button", title: "Delete", text: "✕" });
+    del.addEventListener("click", (e) => { e.stopPropagation(); removeChat(c.id); });
+    const row = el("div", { class: "chat-item" + (c.id === state.activeId ? " active" : "") }, el("span", { text: c.title }), del);
+    row.addEventListener("click", () => { if (!busy) { state.activeId = c.id; save(); render(); $("side").classList.remove("open"); } });
+    box.append(row);
+  });
+}
+
+// ---------- chat logic ----------
+function newChat() {
+  if (busy) return;
+  const chat = { id: String(Date.now()) + Math.random().toString(36).slice(2, 6), title: "New chat", updated: Date.now(), messages: [] };
+  state.chats.push(chat); state.activeId = chat.id; save(); render(); $("input").focus();
+  $("side").classList.remove("open");
+}
+function removeChat(id) {
+  if (busy) return;
+  state.chats = state.chats.filter((c) => c.id !== id);
+  if (state.activeId === id) state.activeId = state.chats.length ? state.chats[0].id : null;
+  save(); render();
+}
+
+// Pull ```fenced``` blocks out of the message: they become the request's `code`.
+function splitMessage(text) {
+  const blocks = []; let lang = null;
+  const question = text.replace(/```([\w+#.-]*)[ \t]*\n([\s\S]*?)```/g, (_, l, code) => {
+    if (!lang && l) lang = l; blocks.push(code.replace(/\n$/, "")); return "";
+  }).trim();
+  return { question, code: blocks.join("\n\n") || null, language: lang };
+}
+function assistantText(d) {
+  const r = d.response;
+  return r.answer + r.code_blocks.map((c) => "\n```" + c.language + "\n" + c.code + "\n```").join("");
+}
+function buildHistory(chat, upto) {
+  const turns = [];
+  chat.messages.slice(0, upto).forEach((m) => {
+    if (m.role === "user") turns.push({ role: "user", content: m.text.slice(0, 7900) });
+    else if (m.data) turns.push({ role: "assistant", content: assistantText(m.data).slice(0, 7900) });
+  });
+  return turns.slice(-12);
+}
+
+async function send(raw, isRetry = false) {
+  const text = (raw ?? $("input").value).trim();
+  if (!text || busy) return;
+  if (!active()) newChat();
+  const chat = active(), mode = $("mode").value, parts = splitMessage(text);
+  const fallback = { explain: "Explain this code.", review: "Review this code.", debug: "Find the root cause and fix this.", auto: "What does this do?", ask: "What does this do?", generate: "Generate this.", learn: "" }[mode];
+  const question = parts.question || (parts.code ? fallback : "");
+  if (!question) return;
+  if (question.length > 4000 || (parts.code && parts.code.length > 20000)) {
+    chat.messages.push({ role: "user", text }, { role: "assistant", error: { code: "too_long", message: "Message too long (limit 4,000 characters of text and 20,000 of code)." } });
+    save(); return render();
+  }
+
+  if (isRetry) {                       // drop the failed answer, keep the user turn, resend it
+    while (chat.messages.length && chat.messages[chat.messages.length - 1].role === "assistant") chat.messages.pop();
+    chat.messages.pop();
+  }
+  const history = buildHistory(chat, chat.messages.length);
+  chat.messages.push({ role: "user", text });
+  const pending = { role: "assistant", pending: true };
+  chat.messages.push(pending);
+  if (chat.title === "New chat") chat.title = (parts.question || text).replace(/\s+/g, " ").slice(0, 48);
+  chat.updated = Date.now();
+  if (raw == null) { $("input").value = ""; autosize(); }
+  busy = true; $("send").disabled = false; save(); render();   // button doubles as "stop"
+
+  const started = Date.now();
+  timer = setInterval(() => {
+    const e = $("elapsed"); if (e) e.textContent = ` Thinking locally… ${Math.round((Date.now() - started) / 1000)}s`;
+  }, 1000);
+
+  const model = $("model").value || undefined;
+  let path = "/chat/stream", body;
+  if (mode === "learn") {
+    path = "/learn/stream";
+    body = { topic: question.split("\n")[0].slice(0, 120), question, model };
+  } else {
+    body = { question, history, model, mode: mode === "auto" ? undefined : mode };
+    if (parts.code) body.code = parts.code;
+    if (parts.language) body.language = parts.language;
+  }
+  controller = new AbortController();
+  try {
+    const out = await streamRequest(path, body, controller.signal, (text) => {
+      pending.partial = text;
+      if (active() === chat) paintLive(text);
+    });
+    delete pending.pending; delete pending.partial; liveBody = null;
+    if (out.data) pending.data = out.data; else pending.error = out.error;
+  } catch (e) {
+    liveBody = null; delete pending.partial;
+    delete pending.pending;
+    pending.error = e.name === "AbortError" ? { code: "stopped", message: "Stopped." } : { code: "network", message: "Could not reach the CodeMind server." };
+  } finally {
+    clearInterval(timer); busy = false; controller = null; $("send").disabled = !$("input").value.trim();
+    $("send").textContent = "↑";
+    chat.updated = Date.now(); save(); if (active() === chat) render();
+  }
+}
+
+function autosize() {
+  const t = $("input"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 220) + "px";
+  $("send").disabled = busy ? false : !t.value.trim();
+}
+
+// ---------- init ----------
+async function init() {
+  load();
+  if (!active()) { state.activeId = state.chats.length ? state.chats[0].id : null; }
+  render();
+
+  $("new").addEventListener("click", newChat);
+  $("burger").addEventListener("click", () => $("side").classList.toggle("open"));
+  $("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (busy && controller) { controller.abort(); return; }
+    send();
+  });
+  $("input").addEventListener("input", autosize);
+  $("input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("form").requestSubmit(); }
+  });
+  $("fence").addEventListener("click", () => {
+    const t = $("input"), s = t.selectionStart, e = t.selectionEnd;
+    const ins = "\n```\n" + t.value.slice(s, e) + "\n```\n";
+    t.value = t.value.slice(0, s) + ins + t.value.slice(e);
+    t.focus(); t.selectionStart = t.selectionEnd = s + 5 + (e - s); autosize();
+  });
+  // While a request runs the send button becomes a stop button.
+  setInterval(() => { $("send").textContent = busy ? "■" : "↑"; }, 200);
+
+  try {
+    const [h, m] = await Promise.all([
+      fetch("/health/ollama").then((r) => r.json()),
+      fetch("/models").then((r) => (r.ok ? r.json() : null)),
+    ]);
+    const ok = h.reachable && h.model_installed;
+    $("dot").classList.add(ok ? "ok" : "bad");
+    $("status").textContent = h.reachable ? (h.model_installed ? `Ollama ${h.ollama_version}` : h.detail) : "Ollama is not reachable";
+    if (m) {
+      m.models.forEach((x) => $("model").append(el("option", { value: x.name, text: x.name })));
+      let saved = null; try { saved = localStorage.getItem("codemind.model"); } catch {}
+      $("model").value = m.models.some((x) => x.name === saved) ? saved : m.selected_model;
+    }
+  } catch {
+    $("dot").classList.add("bad"); $("status").textContent = "Server unreachable";
+  }
+  if (!$("model").options.length) $("model").append(el("option", { value: "", text: "default model" }));
+  $("model").addEventListener("change", () => { try { localStorage.setItem("codemind.model", $("model").value); } catch {} });
+  $("input").focus();
+}
+init();
+</script>
+</body>
+</html>

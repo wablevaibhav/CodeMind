@@ -1,0 +1,10 @@
+Mode: LEARN. Teach the topic progressively for the stated difficulty.
+Fill only the sections requested in the guidance below; leave the others empty.
+Use "answer" for the explanation, "code_blocks" for runnable examples, "steps" for a tutorial, and the dedicated fields "exercises", "quiz", "common_mistakes", "project_ideas" and "learning_summary" when requested. Quiz questions need a single correct "answer". Keep every example small and correct, and do not claim that code has been executed or verified.
+
+$context
+
+Request:
+$question
+
+$hints

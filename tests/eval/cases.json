@@ -1,0 +1,93 @@
+[
+  {
+    "id": "py-list-comprehension",
+    "mode": "ask",
+    "input": {"question": "How do I square every number in a Python list?", "language": "python"},
+    "expect": {"any_of": [["comprehension", "map("]], "min_code_blocks": 1, "code_language": "python"}
+  },
+  {
+    "id": "debug-keyerror",
+    "mode": "debug",
+    "input": {
+      "question": "Why does this fail?",
+      "code": "d = {'a': 1}\nprint(d['b'])",
+      "error_output": "Traceback (most recent call last):\n  File \"x.py\", line 2, in <module>\n    print(d['b'])\nKeyError: 'b'"
+    },
+    "expect": {"any_of": [["keyerror", "key 'b'", "missing key"]]}
+  },
+  {
+    "id": "explain-recursion",
+    "mode": "explain",
+    "input": {"question": "Explain this code.", "code": "def f(n):\n    return 1 if n <= 1 else n * f(n - 1)", "language": "python"},
+    "expect": {"any_of": [["factorial"], ["recurs"]]}
+  },
+  {
+    "id": "generate-fastapi-health",
+    "mode": "generate",
+    "input": {"question": "Write a FastAPI endpoint GET /ping that returns {\"ok\": true}.", "language": "python", "framework": "fastapi"},
+    "expect": {"all_of": ["fastapi"], "min_code_blocks": 1, "code_language": "python"}
+  },
+  {
+    "id": "review-sql-injection",
+    "mode": "review",
+    "input": {"question": "Review this code.", "code": "def get(db, name):\n    return db.execute(\"SELECT * FROM users WHERE name = '\" + name + \"'\")", "language": "python"},
+    "expect": {"any_of": [["injection", "parameteri", "placeholder"]]}
+  },
+  {
+    "id": "ask-ambiguous",
+    "mode": "ask",
+    "input": {"question": "Why is it slow?"},
+    "expect": {}
+  },
+  {
+    "id": "debug-mutable-default",
+    "mode": "debug",
+    "input": {
+      "question": "Calling add(1) then add(2) returns [1, 2] on the second call. Why?",
+      "code": "def add(x, items=[]):\n    items.append(x)\n    return items",
+      "language": "python"
+    },
+    "expect": {"any_of": [["mutable default", "default argument", "default value", "default list"]]}
+  },
+  {
+    "id": "debug-async-missing-await",
+    "mode": "debug",
+    "input": {
+      "question": "This prints a coroutine object instead of the data.",
+      "code": "import asyncio\n\nasync def fetch():\n    return 42\n\nasync def main():\n    data = fetch()\n    print(data)\n\nasyncio.run(main())",
+      "language": "python"
+    },
+    "expect": {"any_of": [["await"]]}
+  },
+  {
+    "id": "generate-sql-top-customers",
+    "mode": "generate",
+    "input": {
+      "question": "Write a PostgreSQL query returning the top 3 customers by total order amount, given tables customers(id, name) and orders(id, customer_id, amount).",
+      "language": "sql"
+    },
+    "expect": {"all_of": ["group by", "order by", "limit"], "min_code_blocks": 1}
+  },
+  {
+    "id": "generate-typescript-debounce",
+    "mode": "generate",
+    "input": {"question": "Write a generic debounce function in TypeScript.", "language": "typescript"},
+    "expect": {"any_of": [["settimeout"]], "min_code_blocks": 1}
+  },
+  {
+    "id": "ask-git-undo-commit",
+    "mode": "ask",
+    "input": {"question": "How do I undo my last git commit but keep the changes staged?"},
+    "expect": {"all_of": ["reset", "--soft"]}
+  },
+  {
+    "id": "review-js-security",
+    "mode": "review",
+    "input": {
+      "question": "Review this Express handler.",
+      "code": "app.get('/user', (req, res) => {\n  const html = '<h1>Hello ' + req.query.name + '</h1>';\n  res.send(html);\n});",
+      "language": "javascript"
+    },
+    "expect": {"any_of": [["xss", "cross-site scripting", "sanitiz", "escape"]]}
+  }
+]

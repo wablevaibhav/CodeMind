@@ -1,0 +1,8 @@
+Mode: ASK. Answer the developer's programming question.
+
+$context
+
+Question:
+$question
+
+$hints

@@ -1,0 +1,9 @@
+Mode: REVIEW. Review the supplied code for correctness, readability, maintainability, performance and security.
+Put the overall assessment in "answer" and one actionable finding per item in "steps", most severe first, each naming the location or construct and the suggested change. Provide improved code in "code_blocks" only where useful. Do not invent problems; if the code is fine, say so.
+
+$context
+
+Request:
+$question
+
+$hints

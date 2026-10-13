@@ -1,0 +1,14 @@
+A previous JSON reply failed validation. Repair it.
+
+Validation problems:
+$feedback
+
+Rules:
+- Keep the intended content; change only what is needed to satisfy the schema.
+- Reply with exactly ONE JSON object and nothing else.
+
+Original request (context only):
+$question
+
+Previous reply (may be truncated):
+$previous

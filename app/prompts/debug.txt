@@ -1,0 +1,9 @@
+Mode: DEBUG. Diagnose the problem below.
+Identify the most likely root cause(s), ranked by likelihood; explain why; give a concrete fix (corrected code in code_blocks when code was supplied); and list "steps" to verify the fix. If the evidence is insufficient, state what is missing in follow_up_questions and list assumptions.
+
+$context
+
+Question:
+$question
+
+$hints

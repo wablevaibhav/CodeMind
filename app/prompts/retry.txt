@@ -1,0 +1,4 @@
+Your previous reply was rejected by the schema validator:
+$feedback
+
+Answer the original request again. Reply with exactly ONE valid JSON object that matches the schema, with no other text.

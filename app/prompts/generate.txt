@@ -1,0 +1,9 @@
+Mode: GENERATE. Produce the requested code.
+Put complete, runnable code (with imports) in "code_blocks", each with a brief explanation of its role. Use "answer" to summarise the approach, "assumptions" for decisions you had to make, and "steps" for how to run or integrate it. Note any dependencies to install.
+
+$context
+
+Request:
+$question
+
+$hints

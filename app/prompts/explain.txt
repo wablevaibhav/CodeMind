@@ -1,0 +1,8 @@
+Mode: EXPLAIN. Explain the supplied code accurately. Describe what it does, how it works, and anything surprising or fragile. Put the walkthrough in "steps" (one item per logical part or line group) and key ideas in "concepts". Do not rewrite the code unless asked.
+
+$context
+
+Request:
+$question
+
+$hints
