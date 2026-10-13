@@ -18,6 +18,49 @@ subscription, and your code never leaves your machine.
 > **Honest expectations:** CodeMind guarantees the *shape* of an answer, not its *correctness*.
 > Small local models make mistakes (see the screenshots below). Always read and test generated code.
 
+## What I built
+
+A complete local-first AI coding assistant: a FastAPI backend that drives Ollama, a validated
+structured-output pipeline with automatic retry and repair, a streaming chat UI, a CLI, and an
+evaluation harness. Everything runs on one laptop with no external services.
+
+## Results at a glance
+
+Measured on one laptop (31 GB RAM, 4 GB VRAM GPU) with the default `qwen2.5-coder:3b` model.
+
+| Metric | Result |
+| ------ | ------ |
+| Time to first words (streaming) | 0.8 to 2.2 s |
+| Complete, validated answer | 5 to 7 s typical; ~2 s for short follow-ups |
+| Lesson with exercises and quiz (Learn mode) | ~15 s |
+| Schema-valid responses (4 models x 12 coding tasks) | **100%** |
+| Valid on the first attempt (3B model) | **100%** (12/12) |
+| Speed gain from 7B to 3B on 4 GB VRAM | **28.1 s to 5.7 s** per answer (about 5x) |
+| Automated tests | **111 passing**, run without Ollama or a model |
+| Lint (Ruff) | clean |
+
+Quality note: on the heuristic content checks the 7B passed 92% and the 3B 75%. The speed is a
+deliberate trade against quality; see [DECISIONS.md](DECISIONS.md).
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U["Browser UI / CLI / API client"] --> R["FastAPI routes<br/>request validation"]
+    R --> S["assistant_service<br/>model choice, deadline, logging"]
+    S --> G["StructuredGenerator<br/>retry_service"]
+    G --> P["prompt_builder<br/>schema + mode + history"]
+    G --> O["ollama_client<br/>schema-constrained, streamed"]
+    O --> M[("Ollama + local model")]
+    O --> V["response_validator<br/>Pydantic"]
+    V -- "invalid: regenerate / repair" --> G
+    V -- "valid" --> S
+    S --> U
+```
+
+The design choices behind this (and their trade-offs) are written up in
+[DECISIONS.md](DECISIONS.md).
+
 ---
 
 ## Contents
@@ -403,25 +446,14 @@ Invalid values stop the app at startup with a clear message.
 
 ## How it works
 
-```
-Browser UI / CLI / API client
-        |
-        v
-   FastAPI routes ----- validate request (Pydantic, unknown fields rejected)
-        |
-        v
-   assistant_service -- model choice, deadline, logging, result envelope
-        |
-        v
-   StructuredGenerator (retry_service)
-     1. prompt_builder    system prompt + JSON Schema + mode template + chat history
-     2. ollama_client     /api/chat with the schema as constrained output, streamed
-     3. response_validator extract JSON -> Pydantic validate
-     4. on failure        regenerate with feedback, or send a separate repair prompt
-        |
-        v
-   validated AssistantResult  (or a structured error, never malformed JSON)
-```
+The diagram is at the top of this file. In words, for each request:
+
+1. The route validates the payload (Pydantic, unknown fields rejected).
+2. `assistant_service` picks the model, starts the deadline, and handles logging.
+3. `StructuredGenerator` builds the prompt (system prompt + JSON Schema + mode template + chat
+   history), calls Ollama with the schema as constrained output, and validates the reply.
+4. On failure it regenerates with feedback or sends a repair prompt, within the retry limits.
+5. The caller receives a validated result, or a structured error. Never malformed JSON.
 
 **Structured output.** `AssistantResponse` in `app/schemas/responses.py` is the single source of
 truth. Its JSON Schema comes straight from `AssistantResponse.model_json_schema()`, is passed to
@@ -451,6 +483,7 @@ nothing. Prior assistant turns are replayed as JSON so the model keeps the outpu
 ## Project layout
 
 ```
+DECISIONS.md              why the key technical choices were made, with trade-offs
 app/
   main.py                 app factory, error handlers, serves the UI at /
   cli.py                  `codemind` command
