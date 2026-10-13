@@ -132,6 +132,7 @@ def create_app(settings: Settings | None = None, llm: LLMClient | None = None) -
                 "style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; "
                 "form-action 'none'; frame-ancestors 'none'",
                 "X-Content-Type-Options": "nosniff",
+                "Cache-Control": "no-cache",  # always revalidate so updates show immediately
             },
         )
 

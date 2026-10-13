@@ -282,7 +282,7 @@ function assistantBody(d) {
       x.solution && el("details", {}, el("summary", { text: "Solution" }), ...richText(x.solution))))));
   if (r.quiz && r.quiz.length)
     kids.push(sec("Quiz", r.quiz.map((q) => el("div", { class: "qa" }, el("div", {}, inline(q.question)),
-      q.options.length && bullets(q.options),
+      q.options.length > 0 && bullets(q.options),
       el("details", {}, el("summary", { text: "Show answer" }), el("div", {}, inline(q.answer)),
         q.explanation && el("div", { class: "note" }, inline(q.explanation)))))));
   if (r.project_ideas && r.project_ideas.length) kids.push(sec("Project ideas", bullets(r.project_ideas)));
